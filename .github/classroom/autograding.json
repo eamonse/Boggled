@@ -1,0 +1,64 @@
+{
+  "tests": [
+    {
+      "name": "No Words",
+      "setup": "",
+      "run": "python -m unittest tests.boggle_tests.BoggleTests.test_four_board_no_words",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 5,
+      "points": 1
+    },
+    {
+      "name": "Double Letter",
+      "setup": "",
+      "run": "python -m unittest tests.boggle_tests.BoggleTests.test_four_board_no_double_letter",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 5,
+      "points": 1
+    },
+    {
+      "name": "No letter reuse",
+      "setup": "",
+      "run": "python -m unittest tests.boggle_tests.BoggleTests.test_four_board_one_sol_no_letter_reuse",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 5,
+      "points": 1
+    },
+    {
+      "name": "Reuse Letters",
+      "setup": "",
+      "run": "python -m unittest tests.boggle_tests.BoggleTests.test_four_board_reuse_letters",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 5,
+      "points": 1
+    },
+    {
+      "name": "Six Board",
+      "setup": "",
+      "run": "python -m unittest tests.boggle_tests.BoggleTests.test_six_board",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 5,
+      "points": 2
+    },
+    {
+      "name": "Big Board",
+      "setup": "",
+      "run": "python -m unittest tests.boggle_tests.BoggleTests.test_big_board",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 5,
+      "points": 2
+    }
+  ]
+}
