@@ -11,7 +11,7 @@ class TrieNode:
 
 class Trie:
     def __init__(self) -> None:
-        self.root = TrieNode(None)
+        self.root = TrieNode()
         #initialze the start of the Trie with an empty node like the BSTs
 
     def generate_tree_from_file(self)->None:
@@ -60,6 +60,8 @@ class Tiles:
     def unuse(self) -> None:
         self.uses = self.uses + 1
 
+    def is_available(self) -> bool:
+        return self.uses > 0
 
 
 # Implement the Boggled Solver. This Boggle has the following special properties:
@@ -68,6 +70,14 @@ class Tiles:
 # 3) The number of times you can use the same tile in a word is variable
 # Your implementation should account for all these properties.
 class Boggled:
+
+    def __init__(self):
+        self.board = []
+        self.max_uses = 0
+        self.trie = Trie()
+        self.visited = set()
+        self.tile_dict = {}
+
 
     # setup test initializes the game with the game board and the max number of times we can use each 
     # tile per word
@@ -82,137 +92,86 @@ class Boggled:
         
         #make a second board with tile form to save x, y, str, uses
         self.tile_board = []
-        self.use_board = []
         r = 0
         for row in self.board:
             c = 0
             tile_list = []
-            use_list = []
             for col in row:
                 tile = Tiles(r, c, self.board[r][c], self.max_uses)
                 tile_list.append(tile)
-                use_list.append(max_uses_per_tile)
                 c+=1
             r=r+1
             self.tile_board.append(tile_list)
-            self.use_board.append(use_list)
     
     # Returns a set of all words on the Boggle board that end in the suffix parameter string. Words can be found
     # in all 8 directions from a position on the board
     def get_all_words(self, suffix:str)->Set:
-        self.suffix = suffix
+        #self.suffix = suffix
         r = 0
+        found_words = set()
         for row in self.board:
             c = 0
             for col in self.board[0]:
-                all_words = self.get_all_words_recursive(self.trie.root, self.tile_board[r][c], self.board[r][c], self.suffix)
-                self.word_set.update(all_words)
+                #all_words = self.get_all_words_recursive(self.trie.root, self.tile_board[r][c], self.board[r][c], self.suffix)
+                #self.word_set.update(all_words)
                 c+=1
+                self.visited.clear()
+                self.get_all_words_recursive(r, c, "", suffix, found_words)
             r+=1
-        return self.word_set
+        return found_words
 
 
     # recursive helper for get_all_words. Customize parameters as needed; you will likely need params for 
     # at least a board position and tile
-    def get_all_words_recursive(self, node:TrieNode, current_tile:Tiles, built_str:str, suffix):
-        #cases to check - board usage, then if it can find the suffix, then build any possible words from there
+    def get_all_words_recursive(self, r:int, c:int, current_word:str, suffix:str, found_words: Set[str]) -> None:
+        #base case if tile is out of bounds or has already been visited
+        if not (0 <= r < len(self.tile_board)) or not (0 <= c < len(self.tile_board[r])):
+            return
+        tile = self.tile_board[r][c]
+        #if tile has been been used in path
+        if ((r,c) in self.visited):
+            return
+        #if there are no more uses for the tile
+        if not (tile.is_available()):
+            return
+
+        current_word += tile.str_val
+        tile.use()
+
+        if (current_word.endswith(suffix) and self.is_valid_word(current_word)):
+            found_words.add(current_word)
         
-        #it should not be taking me too much in order to complete the recursive method
-        #focus on getting the suffix and then looking at the rest of the possible word.
-        cur_node = node
-        word = built_str
-        #base case if there are no more uses left in the tile
-        if current_tile.uses == 0:
-            return set()
+        self.visited.add((r,c))
+
+        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        for x, y in directions:
+            row = r + x
+            col = c + y
+            self.get_all_words_recursive(row, col, current_word, suffix, found_words)
+
+        tile.unuse()
+        self.visited.remove((r,c))
 
 
-        for letter in current_tile.str_val[::-1]:           
-            if letter not in cur_node.letter_dict:
-                #if you can't traverse any further into the str
-                return 
-            #suffix implementation
-            suf_length = len(suffix) - len(word)
-            if suf_length > 0 and suffix[suf_length-1] != letter:
-                return set()
-            word = letter + word
-            #otherwise, keep going deeper into the tree
-            cur_node = cur_node.letter_dict[letter]
-        
-        word_set = set()
-        if cur_node.start_of_word and len(word) > len(suffix):
-            #if you reach the start of the word (meaning reached the end of the word) then add it
-            word_set.add(word)
-        
-    
-        sur_tiles = self.surrounding_tiles_list(current_tile)
-        current_tile.use()
-        for tile in sur_tiles:
-            if tile.uses > 0:
-                self.get_all_words_recursive(cur_node, tile, word, suffix)
-        current_tile.unuse()
-        return word_set
+    def is_valid_word(self, word:str) -> bool:
+        node = self.trie.root
+        for letter in word[::-1]:
+            if letter not in node.letter_dict:
+                return False
+            node = node.letter_dict[letter]
+        return node.start_of_word
 
-    def surrounding_tiles_list(self, tile:Tiles) -> List[Tiles]:
-        avail_tiles = []
-        #r = y, c = x
-        if tile.r != 0 and tile.r != len(self.tile_board)-1 and tile.c != 0 and tile.c != len(self.tile_board)-1:
-            #if its not amy of the tiles along the border, add 8 tiles around.
-            avail_tiles.append(self.tile_board[tile.r][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-        elif tile.r == 0 and tile.c == 0:
-            #top left corner
-            avail_tiles.append(self.tile_board[tile.r][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-        elif tile.r == len(self.tile_board)-1 and tile.c == 0:
-            #bottom left corner
-            avail_tiles.append(self.tile_board[tile.r][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-        elif tile.r == 0 and tile.c == len(self.tile_board)-1:
-            #top right corner
-            avail_tiles.append(self.tile_board[tile.r][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-        elif tile.r == len(self.tile_board)-1 and tile.c == len(self.tile_board)-1:
-            #bottom right corner
-            avail_tiles.append(self.tile_board[tile.r][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-        elif tile.r == 0:
-            #for the top row not including corners
-            avail_tiles.append(self.tile_board[tile.r][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r][tile.c-1])
-        elif tile.r == len(self.tile_board)-1:
-            #for the bottom row not including corners
-            avail_tiles.append(self.tile_board[tile.r][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r][tile.c-1])
-        elif tile.c == 0:
-            #for the left col not including corners
-            avail_tiles.append(self.tile_board[tile.r][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c+1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c+1])
-        elif tile.c == len(self.tile_board)-1:
-            #for the right col not including corners
-            avail_tiles.append(self.tile_board[tile.r][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c-1])
-            avail_tiles.append(self.tile_board[tile.r-1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c])
-            avail_tiles.append(self.tile_board[tile.r+1][tile.c-1])       
-        return avail_tiles
 
+
+game = Boggled()
+board = [
+['b', 'o', 'g', 'l'],
+['e', 'r', 'a', 'e'],
+['d', 'y', 'p', 'i'],
+['t', 'r', 'e', 's']
+]
+
+game.setup_board(1, board)
+result = game.get_all_words("er")
+print(result)
 
